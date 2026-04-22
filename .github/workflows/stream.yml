@@ -1,0 +1,40 @@
+name: Snemovna Streamer
+on:
+  schedule:
+    # Startuje každých 5 hodin, aby byla zajištěna kontinuita (limit GitHubu je 6h)
+    - cron: '0 7,12,17 * * 1-5'
+  workflow_dispatch: # Umožní ti spustit stream kdykoliv ručně tlačítkem
+
+jobs:
+  stream:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350 # Bezpečnostní stopka těsně před limitem GitHubu
+    steps:
+      - name: Install FFmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      
+      - name: Restream logic
+        run: |
+          echo "Hlídací pes nastartován..."
+          
+          # Definice času, kdy musí tento job skončit (za 340 minut)
+          end=$((SECONDS+20400))
+          
+          while [ $SECONDS -lt $end ]; do
+            # Kontrola, zda stream Sněmovny existuje (vrací kód 200)
+            if curl -s --head https://pspcr-ott-live.ssl.cdn.cra.cz/channels/ps-stream1/playlist/cze.m3u8 | grep "200 OK" > /dev/null; then
+              echo "Sněmovna vysílá! Spouštím přenos na YouTube..."
+              
+              # FFmpeg běží, dokud tečou data. Pokud Sněmovna stream vypne, FFmpeg skončí.
+              ffmpeg -i "https://pspcr-ott-live.ssl.cdn.cra.cz/channels/ps-stream1/playlist/cze.m3u8" \
+              -vcodec copy -acodec copy -f flv "rtmp://a.rtmp.youtube.com/live2/${{ secrets.YOUTUBE_STREAM_KEY }}"
+              
+              echo "Stream byl ukončen nebo přerušen. Čekám 30s na restart..."
+              sleep 30
+            else
+              # Pokud Sněmovna nevysílá, počkáme 30 sekund a zkusíme to znovu
+              echo "Sněmovna teď nevysílá (spí). Další kontrola za 30 sekund..."
+              sleep 30
+            fi
+          done
+          echo "Časový limit jobu vypršel. Štafetu převezme další plánovaný běh."
