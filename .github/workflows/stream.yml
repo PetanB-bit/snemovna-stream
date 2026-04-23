@@ -1,34 +1,33 @@
 name: Snemovna Streamer
 on:
   schedule:
-    # Startuje každých 5 hodin, aby byla zajištěna kontinuita (limit GitHubu je 6h)
     - cron: '0 7,12,17 * * 1-5'
-  workflow_dispatch: # Umožní ti spustit stream kdykoliv ručně tlačítkem
+  workflow_dispatch:
 
 jobs:
   stream:
     runs-on: ubuntu-latest
-    timeout-minutes: 350 # Bezpečnostní stopka těsně před limitem GitHubu
+    timeout-minutes: 350
     steps:
       - name: Install FFmpeg
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
       - name: Restream logic
         run: |
-          echo "Hlídací pes nastartován..."
+          echo "Startuji ostrou verzi bez kontrol..."
           end=$((SECONDS+20400))
           
           while [ $SECONDS -lt $end ]; do
-            echo "Zkouším se připojit ke Streamu 1..."
-            # Přidáno -re pro správné časování streamu
+            # Pokus 1: HTTPS verze
+            echo "Zkouším HTTPS odkaz..."
             ffmpeg -re -i "https://pspcr-ott-live.ssl.cdn.cra.cz/channels/ps-stream1/playlist/cze.m3u8" \
-              -c copy -f flv "rtmp://a.rtmp.youtube.com/live2/${{ secrets.YOUTUBE_STREAM_KEY }}" || echo "Stream 1 momentálně nedostupný."
+              -c copy -f flv "rtmp://a.rtmp.youtube.com/live2/${{ secrets.YOUTUBE_STREAM_KEY }}" || echo "HTTPS selhalo."
 
-            echo "Zkouším se připojit ke Streamu 2..."
-            ffmpeg -re -i "https://pspcr-ott-live.ssl.cdn.cra.cz/channels/ps-stream2/playlist/cze.m3u8" \
-              -c copy -f flv "rtmp://a.rtmp.youtube.com/live2/${{ secrets.YOUTUBE_STREAM_KEY }}" || echo "Stream 2 momentálně nedostupný."
+            # Pokus 2: HTTP verze (nezabezpečená - někdy funguje lépe)
+            echo "Zkouším HTTP odkaz..."
+            ffmpeg -re -i "http://pspcr-ott-live.ssl.cdn.cra.cz/channels/ps-stream1/playlist/cze.m3u8" \
+              -c copy -f flv "rtmp://a.rtmp.youtube.com/live2/${{ secrets.YOUTUBE_STREAM_KEY }}" || echo "HTTP selhalo."
 
-            echo "Žádný stream teď nevysílá. Zkusím to znovu za 1 minutu..."
-            sleep 60
+            echo "Čekám 30 sekund před dalším pokusem..."
+            sleep 30
           done
-          echo "Časový limit jobu vypršel. Štafetu převezme další plánovaný běh."
