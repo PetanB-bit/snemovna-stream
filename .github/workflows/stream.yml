@@ -1,4 +1,4 @@
-name: Snemovna Streamer
+name: Snemovna Streamer V2
 on:
   schedule:
     # Startuje v pracovní dny ráno, v poledne a odpoledne (kontinuita po 5h)
