@@ -6,7 +6,6 @@ on:
 
 jobs:
   stream:
-    # Změna z latest na konkrétní verzi 22.04
     runs-on: ubuntu-22.04
     timeout-minutes: 350
     steps:
@@ -17,17 +16,17 @@ jobs:
 
       - name: Restream logic
         run: |
-          echo "Startuji vysílací systém na Ubuntu 22.04..."
+          echo "Startuji stabilní verzi na Ubuntu 22.04..."
           end=$((SECONDS+20400))
           
           while [ $SECONDS -lt $end ]; do
-            echo "Zkouším se připojit..."
+            echo "Zkouším se připojit k vysílání..."
             
-            # Přidán parametr -4 pro vynucení IPv4 (stabilnější v datacentrech)
+            # Opravené pořadí parametrů: ffmpeg -> -4 -> vstup
             ffmpeg -4 -re -i "https://pspcr-ott-live.ssl.cdn.cra.cz/channels/ps-stream1/playlist/cze.m3u8" \
               -vcodec copy \
               -acodec aac -ab 128k -ar 44100 \
-              -f flv "rtmp://a.rtmp.youtube.com/live2/${{ secrets.YOUTUBE_STREAM_KEY }}" || echo "Restart za 30s..."
+              -f flv "rtmp://a.rtmp.youtube.com/live2/${{ secrets.YOUTUBE_STREAM_KEY }}" || echo "Spojení přerušeno, zkusím to znovu..."
 
             sleep 30
           done
