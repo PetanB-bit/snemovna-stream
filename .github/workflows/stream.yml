@@ -1,4 +1,4 @@
-name: Snemovna Streamer V2
+name: Snemovna Streamer V3 (Info Overlay)
 on:
   schedule:
     - cron: '0 7,12,17 * * 1-5'
@@ -9,24 +9,42 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 350
     steps:
-      - name: Install FFmpeg
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg
+          sudo apt-get install -y ffmpeg fonts-liberation
+          pip install requests beautifulsoup4
 
-      - name: Restream logic
+      - name: Restream logic with Overlay
         run: |
-          echo "Startuji stabilní verzi na Ubuntu 22.04..."
+          echo "Startuji verzi s informačním pruhem..."
+          
+          # První získání informací ze Sněmovny
+          python get_info.py
+          
           end=$((SECONDS+20400))
           
           while [ $SECONDS -lt $end ]; do
             echo "Zkouším se připojit k vysílání..."
             
-            # Opravené pořadí parametrů: ffmpeg -> -4 -> vstup
             ffmpeg -re -i "https://pspcr-ott-live.ssl.cdn.cra.cz/channels/ps-stream1/playlist/cze.m3u8" \
-              -vcodec copy \
+              -vf "drawtext=fontfile=/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf: \
+                   textfile=overlay.txt: reload=1: fontcolor=white: fontsize=32: \
+                   box=1: boxcolor=black@0.6: boxborderw=15: \
+                   x=(w-tw)/2: y=h-th-50" \
+              -vcodec libx264 -preset veryfast -maxrate 3000k -bufsize 6000k \
               -acodec aac -ab 128k -ar 44100 \
               -f flv "rtmp://a.rtmp.youtube.com/live2/${{ secrets.YOUTUBE_STREAM_KEY }}" || echo "Spojení přerušeno, zkusím to znovu..."
 
+            # Před dalším pokusem aktualizujeme info
+            python get_info.py
             sleep 30
           done
