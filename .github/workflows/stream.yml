@@ -18,19 +18,26 @@ jobs:
 
       - name: Restream logic
         run: |
-          echo "Startuji stabilní přenos s nuceným datovým tokem..."
+          echo "Startuji maximálně stabilní přenos s automatickou obnovou..."
           
+          # Výpočet konce běhu (cca 5.7 hodiny)
           end=$((SECONDS+20500))
           
           while [ $SECONDS -lt $end ]; do
-            echo "Připojuji se a stabilizuji signál..."
+            echo "Připojuji se ke zdroji a stabilizuji datový tok..."
             
-            # ZMĚNA: libx264 a fixní bitrate 4000k zajistí, že bar bude pořád ZELENÝ
-            ffmpeg -re -i "https://pspcr-ott-live.ssl.cdn.cra.cz/channels/ps-stream1/playlist/cze.m3u8" \
+            # Kompletní parametry pro YouTube:
+            # -reconnect: automaticky zkusí navázat spojení při výpadku sítě
+            # -timeout: pokud zdroj 15s neodpovídá, FFmpeg se ukončí a smyčka ho restartuje
+            # -libx264: aktivní kódování pro eliminaci žlutého pruhu na YT
+            ffmpeg -re -connect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 5 \
+              -i "https://pspcr-ott-live.ssl.cdn.cra.cz/channels/ps-stream1/playlist/cze.m3u8" \
+              -timeout 15000000 \
               -vcodec libx264 -preset veryfast -r 25 -g 50 -b:v 4000k -maxrate 4000k -bufsize 8000k \
               -pix_fmt yuv420p -acodec aac -ab 128k -ar 44100 \
               -f flv -flvflags no_duration_filesize \
-              "rtmp://a.rtmp.youtube.com/live2/${{ secrets.YOUTUBE_STREAM_KEY }}" || echo "Restart za 30s..."
+              -metadata streamName="Snemovna_Zive" \
+              "rtmp://a.rtmp.youtube.com/live2/${{ secrets.YOUTUBE_STREAM_KEY }}" || echo "Signál přerušen, restartuji za 30s..."
 
             sleep 30
           done
