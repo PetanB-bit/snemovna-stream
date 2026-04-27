@@ -1,12 +1,16 @@
 name: Snemovna Streamer V4 - Stabilni
 on:
   schedule:
-    - cron: '0 7,12,17 * * 1-5'
+    # 07:00 UTC = 09:00 našeho času (v létě)
+    # 13:00 UTC = 15:00 našeho času (restart pro odpolední blok)
+    # Spouští se každý den (*)
+    - cron: '0 7,13 * * *'
   workflow_dispatch:
 
 jobs:
   stream:
     runs-on: ubuntu-22.04
+    # Timeout nastaven na 350 minut (těsně pod limit 6 hodin), aby se job korektně ukončil
     timeout-minutes: 350
     steps:
       - name: Install FFmpeg
@@ -18,22 +22,19 @@ jobs:
         run: |
           echo "Startuji stabilní přenos s optimalizací pro YouTube..."
           
-          # Výpočet konce (cca 5.6 hodiny)
-          end=$((SECONDS+20400))
+          # Výpočet konce (cca 5.7 hodiny = 20500 sekund)
+          end=$((SECONDS+20500))
           
           while [ $SECONDS -lt $end ]; do
             echo "Zkouším se připojit k vysílání..."
             
-            # -re (čtení v reálném čase)
-            # -vcodec copy (přímé kopírování obrazu bez zátěže)
-            # -acodec aac (standardizace zvuku pro YT)
-            # -flvflags no_duration_filesize (klíčové pro plynulost live streamu)
+            # Parametry optimalizované pro YouTube a stabilitu
             ffmpeg -re -i "https://pspcr-ott-live.ssl.cdn.cra.cz/channels/ps-stream1/playlist/cze.m3u8" \
               -vcodec copy \
               -acodec aac -ab 128k -ar 44100 \
               -f flv -flvflags no_duration_filesize \
               -metadata streamName="Snemovna_Zive" \
-              "rtmp://a.rtmp.youtube.com/live2/${{ secrets.YOUTUBE_STREAM_KEY }}" || echo "Výpadek signálu, restartuji za 30s..."
+              "rtmp://a.rtmp.youtube.com/live2/${{ secrets.YOUTUBE_STREAM_KEY }}" || echo "Výpadek signálu (nebo zdroj nenalezen), restartuji za 30s..."
 
             sleep 30
           done
