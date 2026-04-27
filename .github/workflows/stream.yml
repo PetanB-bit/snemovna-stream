@@ -18,21 +18,26 @@ jobs:
 
       - name: Restream logic
         run: |
-          echo "Startuji maximálně stabilní přenos s automatickou obnovou..."
+          echo "Startuji maximálně stabilizovaný přenos (Audio & Video Sync)..."
           
           # Výpočet konce běhu (cca 5.7 hodiny)
           end=$((SECONDS+20500))
           
           while [ $SECONDS -lt $end ]; do
-            echo "Připojuji se ke zdroji a stabilizuji datový tok..."
+            echo "Připojuji se ke zdroji..."
             
-            # Parametry -reconnect musí být PŘED -i (vstupem)
-            # Parametry pro obraz a zvuk jsou ZA -i (výstupní nastavení)
+            # PŘIDÁNO: 
+            # -thread_queue_size 1024: zvětšuje buffer pro vstup, aby nedocházelo k výpadkům při čtení
+            # -af aresample...: vynucuje tvrdou synchronizaci zvuku na časovou osu videa
+            # -vsync 1: vynucuje synchronizaci obrazu na audio
             ffmpeg -re \
               -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 5 \
+              -thread_queue_size 1024 \
               -i "https://pspcr-ott-live.ssl.cdn.cra.cz/channels/ps-stream1/playlist/cze.m3u8" \
               -vcodec libx264 -preset veryfast -r 25 -g 50 -b:v 4000k -maxrate 4000k -bufsize 8000k \
-              -pix_fmt yuv420p -acodec aac -ab 128k -ar 44100 \
+              -pix_fmt yuv420p -vsync 1 \
+              -acodec aac -ab 128k -ar 44100 -ac 2 \
+              -af "aresample=async=1:min_hard_comp=0.100000:first_pts=0" \
               -f flv -flvflags no_duration_filesize \
               -metadata streamName="Snemovna_Zive" \
               "rtmp://a.rtmp.youtube.com/live2/${{ secrets.YOUTUBE_STREAM_KEY }}" || echo "Signál přerušen, restartuji za 30s..."
