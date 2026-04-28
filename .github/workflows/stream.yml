@@ -1,9 +1,9 @@
 name: Snemovna Streamer V4 - Stabilni
 on:
   schedule:
-    # 06:55 UTC = 08:55 našeho času (LČ)
-    # 12:55 UTC = 14:55 našeho času (LČ)
-    - cron: '55 6,12 * * *'
+    # 06:52 UTC = 08:52 našeho času (LČ)
+    # 12:52 UTC = 14:52 našeho času (LČ)
+    - cron: '52 6,12 * * *'
   workflow_dispatch:
 
 jobs:
