@@ -1,9 +1,9 @@
 name: Snemovna Streamer V4 - Stabilni
 on:
   schedule:
-    # 07:00 UTC = 09:00 našeho času (v létě)
-    # 13:00 UTC = 15:00 našeho času (restart pro odpolední blok)
-    - cron: '0 7,13 * * *'
+    # 06:55 UTC = 08:55 našeho času (LČ)
+    # 12:55 UTC = 14:55 našeho času (LČ)
+    - cron: '55 6,12 * * *'
   workflow_dispatch:
 
 jobs:
@@ -18,18 +18,14 @@ jobs:
 
       - name: Restream logic
         run: |
-          echo "Startuji maximálně stabilizovaný přenos (Audio & Video Sync)..."
+          echo "Startuji s předstihem v 8:55 pro zachycení začátku schůze..."
           
           # Výpočet konce běhu (cca 5.7 hodiny)
           end=$((SECONDS+20500))
           
           while [ $SECONDS -lt $end ]; do
-            echo "Připojuji se ke zdroji..."
+            echo "Připojuji se ke zdroji a synchronizuji audio/video..."
             
-            # PŘIDÁNO: 
-            # -thread_queue_size 1024: zvětšuje buffer pro vstup, aby nedocházelo k výpadkům při čtení
-            # -af aresample...: vynucuje tvrdou synchronizaci zvuku na časovou osu videa
-            # -vsync 1: vynucuje synchronizaci obrazu na audio
             ffmpeg -re \
               -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 5 \
               -thread_queue_size 1024 \
@@ -40,7 +36,7 @@ jobs:
               -af "aresample=async=1:min_hard_comp=0.100000:first_pts=0" \
               -f flv -flvflags no_duration_filesize \
               -metadata streamName="Snemovna_Zive" \
-              "rtmp://a.rtmp.youtube.com/live2/${{ secrets.YOUTUBE_STREAM_KEY }}" || echo "Signál přerušen, restartuji za 30s..."
+              "rtmp://a.rtmp.youtube.com/live2/${{ secrets.YOUTUBE_STREAM_KEY }}" || echo "Zdroj zatím není dostupný, zkusím to znovu za 30s..."
 
             sleep 30
           done
