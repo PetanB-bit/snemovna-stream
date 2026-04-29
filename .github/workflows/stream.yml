@@ -1,9 +1,10 @@
 name: Snemovna Streamer V4 - Stabilni
 on:
   schedule:
-    # 06:52 UTC = 08:52 našeho času (LČ)
-    # 12:52 UTC = 14:52 našeho času (LČ)
-    - cron: '52 6,12 * * *'
+    # 06:45 UTC = 08:45 našeho času (LČ) - rezerva na zpoždění GitHubu
+    - cron: '45 6 * * *'
+    # 12:45 UTC = 14:45 našeho času (LČ) - odpolední blok
+    - cron: '45 12 * * *'
   workflow_dispatch:
 
 jobs:
@@ -18,7 +19,7 @@ jobs:
 
       - name: Restream logic
         run: |
-          echo "Startuji s předstihem v 8:55 pro zachycení začátku schůze..."
+          echo "Startuji s předstihem pro zachycení začátku schůze..."
           
           # Výpočet konce běhu (cca 5.7 hodiny)
           end=$((SECONDS+20500))
