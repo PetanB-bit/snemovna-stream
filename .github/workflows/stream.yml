@@ -2,9 +2,9 @@ name: Snemovna Streamer V4 - Stabilni
 on:
   schedule:
     # 06:45 UTC = 08:45 našeho času (LČ) - rezerva na zpoždění GitHubu
-    - cron: '45 6 * * *'
+    # - cron: '45 6 * * *'
     # 12:45 UTC = 14:45 našeho času (LČ) - odpolední blok
-    - cron: '45 12 * * *'
+    # - cron: '45 12 * * *'
   workflow_dispatch:
 
 jobs:
